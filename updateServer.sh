@@ -26,16 +26,16 @@ else
         fi
         
     elif [ "$changeType" = "m" ]; then
-        if ! [ -f $serverDir/$fileName ]; then 
-            echo "file $fileName doesn't exist anymore in $serverDir."
-            exit 1
+        if [ -f $serverDir/$fileName ] && [ -f $clientDir/$fileName ]; then 
+            cp $clientDir/$fileName $serverDir/$fileName
         else    
-            $clientDir/$fileName > $serverDir/$fileName
+            if ! [ -f $serverDir/$fileName ]; then echo "file $fileName doesn't exist in $serverDir." exit 1; fi
+            if ! [ -f $clientDir/$fileName ]; then echo "file $fileName doesn't exist in $clientDir." exit 1; fi
         fi
         
     elif [ "$changeType" = "rm" ]; then
-        if ! [ -f $serverDir/$fileName ]; then 
-            echo "file $fileName doesn't exist anymore in $serverDir."
+        if ! [ -f $serverDir/$fileName ]; then
+            echo "file $fileName doesn't exist in $serverDir."
             exit 1
         else    
             rm $serverDir/$fileName
@@ -53,4 +53,3 @@ echo "modification success"
 #modificado archivo cliente existe, server existe
 #borrado archivo cliente no existe, server existe
 #./modifyServer /client /server filename cr > modifications.log
-
