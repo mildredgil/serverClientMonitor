@@ -29,8 +29,8 @@ else
         if [ -f $serverDir/$fileName ] && [ -f $clientDir/$fileName ]; then 
             cp $clientDir/$fileName $serverDir/$fileName
         else    
-            if ! [ -f $serverDir/$fileName ]; then echo "file $fileName doesn't exist in $serverDir." exit 1; fi
-            if ! [ -f $clientDir/$fileName ]; then echo "file $fileName doesn't exist in $clientDir." exit 1; fi
+            if ! [ -f $serverDir/$fileName ]; then echo "file $fileName doesn't exist in $serverDir."; exit 1; fi
+            if ! [ -f $clientDir/$fileName ]; then echo "file $fileName doesn't exist in $clientDir."; exit 1; fi
         fi
         
     elif [ "$changeType" = "rm" ]; then
