@@ -16,7 +16,7 @@
 #define CREATEFILE "c"
 #define MODIFYFILE "m"
 #define DELETEFILE "d"
-#define BUFSIZE 256
+#define BUFSIZE 10
 //notify 
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )
 #define EVENT_BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
@@ -71,11 +71,12 @@ int main() {
         fp=fopen(filename,"w+");
 
         //file content
-        //Read Picture Byte Array and Copy in file
-        printf("Reading Picture Byte Array\n");
+        //Read File Byte Array and Copy in file
+        printf("Reading File Byte Array\n");
         char p_array[BUFSIZE];
-        
-        n = read(newsockfd, p_array, BUFSIZE);
+
+        n = recv(newsockfd, p_array, BUFSIZE, 0);
+        printf("%d /n", n);
         int first = 0;
         while (n >= 0 && first == 0) {
             fwrite(p_array, 1, n, fp);
@@ -86,7 +87,7 @@ int main() {
 
             n = read(newsockfd, p_array, BUFSIZE);
             //printf("%s", p_array);
-            //printf("%d /n", n);
+            printf("%d /n", n);
         }
         //fclose(fp);
 
@@ -111,14 +112,35 @@ int main() {
         fp=fopen(filename,"w+");
 
         //file content
-        n = recv(newsockfd , buffer , 1000 , 0);
+        //Read File Byte Array and Copy in file
+        printf("Reading File Byte Array\n");
+        char p_array[BUFSIZE];
+
+        n = read(newsockfd, p_array, BUFSIZE);
+        printf("%d /n", n);
+        int first = 0;
+        while (n >= 0 && first == 0) {
+            fwrite(p_array, 1, n, fp);
+            
+            if( n == 0) {
+                first = -1;
+            }
+
+            n = read(newsockfd, p_array, BUFSIZE);
+            //printf("%s", p_array);
+            printf("%d /n", n);
+        }
+        
         if (n < 0) error("ERROR reading from socket <file content>");
         fprintf(fp,"%s",buffer);
         bzero(buffer,1000);
 
         printf("the file was received successfully\n");
-        printf("the new file created is %s\n", filename);
+        fseek(fp, 0, SEEK_END);
+        int lenFile = ftell(fp);
+        fclose(fp);
 
+        printf("Total size of %s = %d bytes\n", filename, lenFile);
     } else if ( strcmp(action, DELETEFILE) == 0 ) {
         recv(newsockfd , buffer , 1000 , 0);
 
