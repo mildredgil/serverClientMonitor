@@ -8,8 +8,7 @@
 #define EVENT_SIZE  ( sizeof (struct inotify_event) )
 #define EVENT_BUF_LEN     ( 1024 * ( EVENT_SIZE + 16 ) )
 
-int main( )
-{
+int main() {
   int length, i = 0;
   int fd;
   int wd;

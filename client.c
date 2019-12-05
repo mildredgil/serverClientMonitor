@@ -1,58 +1,88 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h> 
+#include<stdio.h>
+#include<sys/types.h>
+#include<string.h>
+#include<stdlib.h>
+#include<sys/socket.h>
+#include<arpa/inet.h>
+#include<unistd.h>
+
+#define PORT "8080"
+#define HOSTNAME "127.0.0.1"
+#define SA struct sockaddr
+
+//client action
+#define CREATEFILE 'c'
+#define MODIFYFILE 'm'
+#define DELETEFILE 'd'
+#define BUFSIZE 256
 
 void error(const char *msg) {
-    perror(msg);s
-    exit(0);
+    perror(msg);
+    exit(1);
 }
 
-int main(int argc, char *argv[]) {
-    int sockfd, portno, n;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
+int main() {
+    int sockfd;
+    int len, n;
+    
+    struct sockaddr_in servaddr,cliaddr;
+    sockfd = socket(AF_INET,SOCK_STREAM,0);
+    bzero(&servaddr,sizeof(servaddr));
+    
+    servaddr.sin_family=AF_INET;
+    servaddr.sin_addr.s_addr=inet_addr(HOSTNAME);
+    servaddr.sin_port=htons(atoi(PORT));
+    
+    inet_pton(AF_INET,PORT,&servaddr.sin_addr);
+    connect(sockfd,(SA*)&servaddr,sizeof(servaddr));
+    
+    printf("connection ready \n");
 
-    char buffer[256];
-    //ipaddress and port most be given as arguments. Port must be the same as the server
-    if (argc < 3) {
-       fprintf(stderr,"usage %s hostname port\n", argv[0]);
-       exit(0);
-    }
-    portno = atoi(argv[2]);
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) 
-        error("ERROR opening socket");
-    server = gethostbyname(argv[1]);
-    if (server == NULL) {
-        fprintf(stderr,"ERROR, no such host\n");
-        exit(0);
-    }
-    bzero((char *) &serv_addr, sizeof(serv_addr));
-    serv_addr.sin_family = AF_INET;
-    bcopy((char *)server->h_addr, 
-         (char *)&serv_addr.sin_addr.s_addr,
-         server->h_length);
-    serv_addr.sin_port = htons(portno);
+    char action[5];
+    char filename[50];
+    char buffer[1000];
+    
+    FILE *f;
+    sleep(1);
+    //action
+    strcpy(action, "c");
+    send(sockfd,action,3,0);
+    bzero(buffer,1000);
+    printf("action send %s\n", action);
+    sleep(1);
 
-    //check for succesfful connection, the ask to send a message to the server
-    if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
-        error("ERROR connecting");
-    printf("Please enter the message: ");
-    bzero(buffer,256);
-    fgets(buffer,255,stdin);
-    n = write(sockfd,buffer,strlen(buffer));
-    if (n < 0) 
-         error("ERROR writing to socket");
-    bzero(buffer,256);
-    n = read(sockfd,buffer,255);
-    if (n < 0) 
-         error("ERROR reading from socket");
-    printf("%s\n",buffer);
-    close(sockfd);
-    return 0;
+    //filename
+    strcpy(filename, "lunita.jpeg");
+    send(sockfd,filename,strlen(filename),0);
+    bzero(buffer,1000);
+    printf("filename send \n");
+    //file content
+    sleep(1);
+    
+    f = fopen("luna.jpeg","r+");
+    
+    printf("Sending file as Byte Array\n");
+    char send_buffer[BUFSIZE]; // no link between BUFSIZE and the file size
+    n = fread(send_buffer, 1, sizeof(send_buffer), f);
+
+    while(!feof(f)) {
+        write(sockfd, send_buffer, n);
+        n = fread(send_buffer, 1, sizeof(send_buffer), f);
+        printf("%d", n);
+        if (n < 0) error("Unable send content \n");
+        //printf("%s", send_buffer);
+        //printf("%d", n);
+    }
+    write(sockfd, send_buffer, n);
+    if (n < 0) error("Unable send content \n");
+    printf("file content send \n");
+
+    printf("the file was sent successfully\n");
+
+    fseek(f, 0, SEEK_END);
+
+    int lenFile = ftell(f);
+    fclose(f);
+
+    printf("Total size of file.txt = %d bytes\n", lenFile);
 }
