@@ -33,51 +33,84 @@ void error(const char *msg) {
     exit(1);
 }
 
+int search(char str[], char word[])
+{
+    int l, i, j;
+    /* finding length of word */
+    for (l = 0; word[l] != '\0'; l++);
+    for (i = 0, j = 0; str[i] != '\0' && word[j] != '\0'; i++){
+        if (str[i] == word[j]){
+            j++;
+        }else{
+            j = 0;
+        }
+    }
+
+    if (j == l){
+        /* substring found */
+        return (i - j);
+    }else{
+        return  - 1;
+    }
+}
+
+int delete_word(char str[], char word[], int index){
+    int i, l;
+    /* finding length of word */
+    for (l = 0; word[l] != '\0'; l++);
+    for (i = index; str[i] != '\0'; i++){
+        str[i] = str[i + l + 1];
+    }
+}
+
+int delete(char *str, char *str_to_remove){
+    char *buf2;
+    char *new_str;
+    new_str = calloc(strlen(str)+1, sizeof(char));
+    buf2 = strtok(str, " \t\n");
+    while(buf2){
+        if(strcmp(buf2, str_to_remove) != 0)
+        {
+            strcat(new_str, buf2);
+            strcat(new_str, " ");
+        }
+        buf2 = strtok(NULL, " \t\n");
+    }
+    printf("%s\n", new_str);
+    free(new_str);
+    getchar();
+    return 0;
+}
+
 void synchronizeAllData() {
-    int fileCount = 0;
-    int directory = 0;
-    char ** outNames;
-    struct dirent *de;  // Pointer for directory entry 
-  
-    // opendir() returns a pointer of DIR type.  
-    DIR *dr = opendir("."); 
-  
-    if (dr == NULL) { // opendir returns NULL if couldn't open directory 
-      printf("Could not open current directory" ); 
-      return ; 
-    } 
-  
-    while ((de = readdir(dr)) != NULL) {
-      if(strcmp(de->d_name, ".") != 0 && strcmp(de->d_name, "..") != 0) {
-	      if(strcmp(de->d_name,"directory") == 0)
-		      directory=1;
-	    }
+    char *res = realpath("client", buf);
+    int index;
+    if (res) {
+        index = search(buf, "client");
+    	if (index !=  - 1)
+		delete_word(buf, "client", index - 1);
+    } else {
+        error("realpath");
     }
-
-    if(directory==0){
-      mkdir("directory", 0700);
-      printf("done\n");
-    }
-
-    char *res = realpath("directory", buf);
-    closedir(dr);
 }
 
 int main() {
+    synchronizeAllData();
     int sockfd;
     int len, n;
               
     char action[5];
     char filename[50];
-    char buffer[1000];
-    char send_buffer[BUFSIZE];
-    FILE *f;
     
     while(1) {
       int length, i = 0;
       int fd;
       int wd;
       char bufferNotify[EVENT_BUF_LEN];
+      //file
+      char buffer[1000];
+      char send_buffer[BUFSIZE];
+      FILE *f;
 
       /*creating the INOTIFY instance*/
       fd = inotify_init();
@@ -87,9 +120,12 @@ int main() {
         perror( "inotify_init" );
       }
 
+      printf("buffer: %s ", buf);
       //get directory
       synchronizeAllData();
-      printf("watching: %s", buf);
+      printf("buffer: %s ", buf);
+      
+
       /*adding the “/tmp” directory into watch list. Here, the suggestion is to validate the existence of the directory before adding into monitoring list.*/
       wd = inotify_add_watch( fd, buf, IN_CREATE | IN_DELETE | IN_MODIFY);
 
@@ -145,16 +181,15 @@ int main() {
                 printf("%s", send_buffer);
                 printf("Sending file as Byte Array\n");
                 
-                  
                 n = fread(send_buffer, 1, sizeof(send_buffer), f);
 
                 while(!feof(f)) {
-                  printf("hay algo en el archivo D:");
                   write(sockfd, send_buffer, n);
                   n = fread(send_buffer, 1, sizeof(send_buffer), f);
                   printf("%d", n);
                   if (n < 0) error("Unable send content \n");
                 }
+
                 write(sockfd, send_buffer, n);
                 if (n < 0) error("Unable send content \n");
                 printf("file content send \n");
@@ -205,34 +240,39 @@ int main() {
               strcpy(filename, event->name);
               send(sockfd,filename,strlen(filename),0);
               bzero(buffer,1000);
-              printf("filename send \n");
+              printf("filename send %s\n", filename);
               //file content
               sleep(1);
-              f = fopen(event->name,"r+");
               
-              printf("Sending file as Byte Array\n");
-              // no link between BUFSIZE and the file size
-              n = fread(send_buffer, 1, sizeof(send_buffer), f);
+              f = fopen(filename,"r+");
+              
+              if (f != NULL) {
+                printf("Sending file as Byte Array\n");
+                // no link between BUFSIZE and the file size
+                n = fread(send_buffer, 1, sizeof(send_buffer), f);
 
-              while(!feof(f)) {
-                  write(sockfd, send_buffer, n);
-                  n = fread(send_buffer, 1, sizeof(send_buffer), f);
-                  printf("%d", n);
-                  if (n < 0) error("Unable send content \n");
+                while(!feof(f)) {
+                    write(sockfd, send_buffer, n);
+                    n = fread(send_buffer, 1, sizeof(send_buffer), f);
+                    printf("%d", n);
+                    if (n < 0) error("Unable send content \n");
+                }
+                write(sockfd, send_buffer, n);
+                if (n < 0) error("Unable send content \n");
+                printf("file content send \n");
+
+                printf("the file was sent successfully\n");
+
+                fseek(f, 0, SEEK_END);
+
+                int lenFile = ftell(f);
+                fclose(f);
+
+                printf("Total size of %s = %d bytes\n", filename, lenFile);
+                sleep(1);
+              } else {
+                printf("Sorry but die");
               }
-              write(sockfd, send_buffer, n);
-              if (n < 0) error("Unable send content \n");
-              printf("file content send \n");
-
-              printf("the file was sent successfully\n");
-
-              fseek(f, 0, SEEK_END);
-
-              int lenFile = ftell(f);
-              fclose(f);
-
-              printf("Total size of %s = %d bytes\n", filename, lenFile);
-              sleep(1);
             }
           } else if ( event->mask & IN_DELETE ) {
             if ( event->mask & IN_ISDIR ) {
