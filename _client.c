@@ -124,7 +124,7 @@ int main() {
               connect(sockfd,(SA*)&servaddr,sizeof(servaddr));
               
               printf("connection ready \n");
-              sleep(1);
+
               //action
               strcpy(action, CREATEFILE);
               send(sockfd,action,3,0);
@@ -140,22 +140,25 @@ int main() {
               //file content
               sleep(1);
               f = fopen(event->name,"r+");
-
-              if (f != NULL) {
-                printf("%s", send_buffer);
-                printf("Sending file as Byte Array\n");
+              printf("sorry :c %d", f);
+              if ( f < 0 ) {
+                printf("sorry :c");
+              } else {
+                n = 1;
                 
-                  
-                n = fread(send_buffer, 1, sizeof(send_buffer), f);
-
+                printf("Sending file as Byte Array asd\n");
+                
                 while(!feof(f)) {
+                  n = fread(send_buffer, 1, sizeof(send_buffer), f);
                   printf("hay algo en el archivo D:");
                   write(sockfd, send_buffer, n);
                   n = fread(send_buffer, 1, sizeof(send_buffer), f);
                   printf("%d", n);
                   if (n < 0) error("Unable send content \n");
                 }
+                printf("escribiendo");
                 write(sockfd, send_buffer, n);
+                printf("escribio");
                 if (n < 0) error("Unable send content \n");
                 printf("file content send \n");
 
@@ -169,8 +172,6 @@ int main() {
                 printf("Total size of %s = %d bytes\n", filename, lenFile);
 
                 sleep(1);
-              } else {
-                printf("sorry but file null");
               }
             }
           } else if (event->mask & IN_MODIFY ) {
@@ -278,6 +279,47 @@ int main() {
 
       /*closing the INOTIFY instance*/
       close( fd );
+
       close(sockfd);
     }
+    /*
+    sleep(1);
+    //action
+    strcpy(action, "c");
+    send(sockfd,action,3,0);
+    bzero(buffer,1000);
+    printf("action send %s\n", action);
+    sleep(1);
+
+    //filename
+    strcpy(filename, "lunita.jpeg");
+    send(sockfd,filename,strlen(filename),0);
+    bzero(buffer,1000);
+    printf("filename send \n");
+    //file content
+    sleep(1);
+    f = fopen("luna.jpeg","r+");
+    
+    printf("Sending file as Byte Array\n");
+    // no link between BUFSIZE and the file size
+    n = fread(send_buffer, 1, sizeof(send_buffer), f);
+
+    while(!feof(f)) {
+        write(sockfd, send_buffer, n);
+        n = fread(send_buffer, 1, sizeof(send_buffer), f);
+        printf("%d", n);
+        if (n < 0) error("Unable send content \n");
+    }
+    write(sockfd, send_buffer, n);
+    if (n < 0) error("Unable send content \n");
+    printf("file content send \n");
+
+    printf("the file was sent successfully\n");
+
+    fseek(f, 0, SEEK_END);
+
+    int lenFile = ftell(f);
+    fclose(f);
+
+    printf("Total size of file.txt = %d bytes\n", lenFile);*/
 }

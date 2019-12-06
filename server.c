@@ -10,7 +10,7 @@
 //Server 
 #define PORT "8080"
 #define SA struct sockaddr
-#define LISTENQ 5
+#define LISTENQ 10
 
 //client action
 #define CREATEFILE "c"
@@ -40,114 +40,111 @@ int main() {
     bind(listenfd,(SA*)&servaddr,sizeof(servaddr));
     listen(listenfd,LISTENQ);
     
-    client=sizeof(cliaddr);
-    newsockfd=accept(listenfd,(SA*)&cliaddr,&client);
-    char buffer[1000];
-    FILE *fp;
-    
-    if (newsockfd < 0) error("ERROR on accept");
-    bzero(buffer,1000);
-    //action
-    n = recv(newsockfd , buffer , 1000 , 0);
-    
-    if (n < 0) error("ERROR reading from socket <action>");
-    char action[4];
-    strcpy(action, buffer);
-    printf("the action is %s \n" , action);
-    bzero(buffer,1000);
-    //filename
-    //n = read(newsockfd,buffer,1000);
-    n = recv(newsockfd , buffer , 1000 , 0);
-    if (n < 0) error("ERROR reading from socket <filename>");
-    char filename[50];
-    strcpy(filename, buffer);
-    printf("the file name is %s \n" , filename);
-    bzero(buffer,1000);
-    printf("CREATFILE %s action is %s \n" , CREATEFILE, action);
-    if( strcmp(action, CREATEFILE) == 0 ) {
-        //Creates an empty file for writing. 
-        //If a file with the same name already exists, 
-        //its content is erased and the file is considered as a new empty file.
-        fp=fopen(filename,"w+");
-
-        //file content
-        //Read File Byte Array and Copy in file
-        printf("Reading File Byte Array\n");
-        char p_array[BUFSIZE];
-
-        n = recv(newsockfd, p_array, BUFSIZE, 0);
-        printf("%d /n", n);
-        int first = 0;
-        while (n >= 0 && first == 0) {
-            fwrite(p_array, 1, n, fp);
-            
-            if( n == 0) {
-                first = -1;
-            }
-
-            n = read(newsockfd, p_array, BUFSIZE);
-            //printf("%s", p_array);
-            printf("%d /n", n);
-        }
-        //fclose(fp);
-
-        //n = recv(newsockfd , buffer , 1000 , 0);
-        if (n < 0) error("ERROR reading from socket <file content>");
-        fprintf(fp,"%s",buffer);
-        bzero(buffer,1000);
-
-        printf("the file was received successfully\n");
-        printf("the new file created is %s\n" , filename);
-        //fopen(fp, "r");
-        fseek(fp, 0, SEEK_END);
-
-        int lenFile = ftell(fp);
-        fclose(fp);
-
-        printf("Total size of file.txt = %d bytes\n", lenFile);
-    } else if ( strcmp(action, MODIFYFILE) == 0 ) {
-        //Creates an empty file for writing. 
-        //If a file with the same name already exists, 
-        //its content is erased and the file is considered as a new empty file.
-        fp=fopen(filename,"w+");
-
-        //file content
-        //Read File Byte Array and Copy in file
-        printf("Reading File Byte Array\n");
-        char p_array[BUFSIZE];
-
-        n = read(newsockfd, p_array, BUFSIZE);
-        printf("%d /n", n);
-        int first = 0;
-        while (n >= 0 && first == 0) {
-            fwrite(p_array, 1, n, fp);
-            
-            if( n == 0) {
-                first = -1;
-            }
-
-            n = read(newsockfd, p_array, BUFSIZE);
-            //printf("%s", p_array);
-            printf("%d /n", n);
-        }
+    do { 
+        client=sizeof(cliaddr);
+        newsockfd=accept(listenfd,(SA*)&cliaddr,&client);
+        char buffer[1000];
+        FILE *fp;
         
-        if (n < 0) error("ERROR reading from socket <file content>");
-        fprintf(fp,"%s",buffer);
+        if (newsockfd < 0) error("ERROR on accept");
         bzero(buffer,1000);
+        //action
+        n = recv(newsockfd , buffer , 1000 , 0);
+        
+        if (n < 0) error("ERROR reading from socket <action>");
+        char action[4];
+        strcpy(action, buffer);
+        printf("the action is %s \n" , action);
+        bzero(buffer,1000);
+        //filename
+        //n = read(newsockfd,buffer,1000);
+        n = recv(newsockfd , buffer , 1000 , 0);
+        if (n < 0) error("ERROR reading from socket <filename>");
+        char filename[50];
+        strcpy(filename, buffer);
+        printf("the file name is %s \n" , filename);
+        bzero(buffer,1000);
+        printf("CREATFILE %s action is %s \n" , CREATEFILE, action);
+        if( strcmp(action, CREATEFILE) == 0 ) {
+            //Creates an empty file for writing. 
+            //If a file with the same name already exists, 
+            //its content is erased and the file is considered as a new empty file.
+            fp=fopen(filename,"w+");
 
-        printf("the file was received successfully\n");
-        fseek(fp, 0, SEEK_END);
-        int lenFile = ftell(fp);
-        fclose(fp);
+            //file content
+            //Read File Byte Array and Copy in file
+            printf("Reading File Byte Array\n");
+            char p_array[BUFSIZE];
 
-        printf("Total size of %s = %d bytes\n", filename, lenFile);
-    } else if ( strcmp(action, DELETEFILE) == 0 ) {
-        recv(newsockfd , buffer , 1000 , 0);
+            n = recv(newsockfd, p_array, BUFSIZE, 0);
+            printf("%d /n", n);
+            int first = 0;
+            while (n >= 0 && first == 0) {
+                fwrite(p_array, 1, n, fp);
+                
+                if( n == 0) {
+                    first = -1;
+                }
 
-        n = remove(filename);
-        if (n < 0) error("Unable to delete the file");
-    }
-    
-     close(newsockfd);
-     close(sockfd);
+                n = read(newsockfd, p_array, BUFSIZE);
+                //printf("%s", p_array);
+                printf("%d /n", n);
+            }
+            
+            if (n < 0) error("ERROR reading from socket <file content>");
+            fprintf(fp,"%s",buffer);
+            bzero(buffer,1000);
+
+            printf("the file was received successfully\n");
+            printf("the new file created is %s\n" , filename);
+            fseek(fp, 0, SEEK_END);
+            int lenFile = ftell(fp);
+            fclose(fp);
+
+            printf("Total size of %s = %d bytes\n", filename, lenFile);
+        } else if ( strcmp(action, MODIFYFILE) == 0 ) {
+            //Creates an empty file for writing. 
+            //If a file with the same name already exists, 
+            //its content is erased and the file is considered as a new empty file.
+            fp=fopen(filename,"w+");
+
+            //file content
+            //Read File Byte Array and Copy in file
+            printf("Reading File Byte Array\n");
+            char p_array[BUFSIZE];
+
+            n = recv(newsockfd, p_array, BUFSIZE, 0);
+            printf("%d /n", n);
+            int first = 0;
+            while (n >= 0 && first == 0) {
+                fwrite(p_array, 1, n, fp);
+                
+                if( n == 0) {
+                    first = -1;
+                }
+
+                n = read(newsockfd, p_array, BUFSIZE);
+                printf("%d /n", n);
+            }
+            
+            if (n < 0) error("ERROR reading from socket <file content>");
+            fprintf(fp,"%s",buffer);
+            bzero(buffer,1000);
+
+            printf("the file was received successfully\n");
+            printf("the new file created is %s\n" , filename);
+            fseek(fp, 0, SEEK_END);
+            int lenFile = ftell(fp);
+            fclose(fp);
+
+            printf("Total size of %s = %d bytes\n", filename, lenFile);
+        } else if ( strcmp(action, DELETEFILE) == 0 ) {
+            recv(newsockfd , buffer , 1000 , 0);
+
+            n = remove(filename);
+            if (n < 0) printf("Unable to delete the file");
+        }
+        close(newsockfd);
+        close(sockfd);
+    } while(1);
 }
