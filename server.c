@@ -62,9 +62,9 @@ int main() {
         if (n < 0) error("ERROR reading from socket <filename>");
         char filename[50];
         strcpy(filename, buffer);
-        printf("the file name is %s \n" , filename);
+        printf("the filename is %s \n" , filename);
         bzero(buffer,1000);
-        printf("CREATFILE %s action is %s \n" , CREATEFILE, action);
+
         if( strcmp(action, CREATEFILE) == 0 ) {
             //Creates an empty file for writing. 
             //If a file with the same name already exists, 
@@ -88,7 +88,7 @@ int main() {
 
                 n = read(newsockfd, p_array, BUFSIZE);
                 //printf("%s", p_array);
-                printf("%d /n", n);
+                //printf("%d /n", n);
             }
             
             if (n < 0) error("ERROR reading from socket <file content>");
@@ -108,36 +108,38 @@ int main() {
             //its content is erased and the file is considered as a new empty file.
             fp=fopen(filename,"w+");
 
-            //file content
-            //Read File Byte Array and Copy in file
-            printf("Reading File Byte Array\n");
-            char p_array[BUFSIZE];
+            if(fp != NULL) {
+                //file content
+                //Read File Byte Array and Copy in file
+                printf("Reading File Byte Array\n");
+                char p_array[BUFSIZE];
 
-            n = recv(newsockfd, p_array, BUFSIZE, 0);
-            printf("%d /n", n);
-            int first = 0;
-            while (n >= 0 && first == 0) {
-                fwrite(p_array, 1, n, fp);
-                
-                if( n == 0) {
-                    first = -1;
-                }
-
-                n = read(newsockfd, p_array, BUFSIZE);
+                n = recv(newsockfd, p_array, BUFSIZE, 0);
                 printf("%d /n", n);
+                int first = 0;
+                while (n >= 0 && first == 0) {
+                    fwrite(p_array, 1, n, fp);
+                    
+                    if( n == 0) {
+                        first = -1;
+                    }
+
+                    n = read(newsockfd, p_array, BUFSIZE);
+                    printf("%d /n", n);
+                }
+                
+                if (n < 0) error("ERROR reading from socket <file content>");
+                fprintf(fp,"%s",buffer);
+                bzero(buffer,1000);
+
+                printf("the file was received successfully\n");
+                printf("the new file created is %s\n" , filename);
+                fseek(fp, 0, SEEK_END);
+                int lenFile = ftell(fp);
+                fclose(fp);
+
+                printf("Total size of %s = %d bytes\n", filename, lenFile);
             }
-            
-            if (n < 0) error("ERROR reading from socket <file content>");
-            fprintf(fp,"%s",buffer);
-            bzero(buffer,1000);
-
-            printf("the file was received successfully\n");
-            printf("the new file created is %s\n" , filename);
-            fseek(fp, 0, SEEK_END);
-            int lenFile = ftell(fp);
-            fclose(fp);
-
-            printf("Total size of %s = %d bytes\n", filename, lenFile);
         } else if ( strcmp(action, DELETEFILE) == 0 ) {
             recv(newsockfd , buffer , 1000 , 0);
 
